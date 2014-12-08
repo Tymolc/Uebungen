@@ -18,19 +18,19 @@
    tpArray - coordinates for which the colors are to be calculated
    numberOfCalculations - guess what */
 struct ThreadData {
-	int** threadPositionArray;
+	int** threadPosArray;
 	char** calculatedColors;
-	int coordinateCount;
+	int coordCount;
 };
 
-DWORD WINAPI calculateColorsInsideThread(LPVOID stupidVoid) {
-	struct ThreadData *td = (struct ThreadData*) stupidVoid;
+DWORD WINAPI calculateColorsThread(LPVOID void) {
+	struct ThreadData *td = (struct ThreadData*) void;
 	int i,x,y;
 	char* c;
 
-	for (i = 0; i < td->coordinateCount; ++i) {
-		x = td->threadPositionArray[i][0];
-		y = td->threadPositionArray[i][1];
+	for (i = 0; i < td->coordCount; ++i) {
+		x = td->threadPosArray[i][0];
+		y = td->threadPosArray[i][1];
 		c = td->calculatedColors[i];
 
 		getColorValuesAt(x * (2.0 / XSIZE) - 1.5, y * (2.0 / YSIZE) - 1.0,&c[2],&c[1],&c[0]);
@@ -50,7 +50,7 @@ int main(int argc, char *argv[])
     int len,x,y;
     char *dsc;
     char colorArray[YSIZE][XSIZE][3];
-	int*** threadPositionArray = (int***)malloc(threadCount * sizeof(int***));
+	int*** threadPosArray = (int***)malloc(threadCount * sizeof(int***));
 	struct ThreadData* dataArray = (struct ThreadData*)malloc(threadCount * sizeof(struct ThreadData));
     short svalue;
     int   lvalue;
@@ -59,14 +59,11 @@ int main(int argc, char *argv[])
 	int i,j;
 	int lastThreadCalculations = XSIZE*YSIZE - (threadCount-1)*calculationsPerThread;
 
-	// --- init threadposition Array
 	for (j=0; j < threadCount; ++j) {
-		dataArray[j].threadPositionArray = (int**)malloc(calculationsPerThread * sizeof(int**));
+		dataArray[j].threadPosArray = (int**)malloc(calculationsPerThread * sizeof(int**));
 		dataArray[j].calculatedColors    = (char**)malloc(calculationsPerThread * sizeof(char**));
-		//threadPositionArray[j] = (int**)malloc(calculationsPerThread * sizeof(int**));
 		for (i=0; i < calculationsPerThread; ++i) {
-			//threadPositionArray[j][i] = (int*)malloc(2 * sizeof(int));
-			dataArray[j].threadPositionArray[i] = (int*)malloc(2 * sizeof(int));
+			dataArray[j].threadPosArray[i] = (int*)malloc(2 * sizeof(int));
 			dataArray[j].calculatedColors[i] = (char*)malloc(3 * sizeof(char));
 		}
 	}
@@ -80,6 +77,11 @@ int main(int argc, char *argv[])
     getDescription(dsc,&len);
     
     printf("Calculate %s %d\n",dsc,getId());
+	if(argv[2]=="")
+	{
+		argv[2] = "mandelbrot.bmp";
+	}
+	
     fd=fopen(argv[2],"wb+");
     if(NULL==fd)
     {
@@ -139,8 +141,6 @@ int main(int argc, char *argv[])
         exit(2);
     }
 
-	// ---- prepare thread startup
-	// ---- note down individual coordinates here for each thread
 	assignedCoordinates = 0;
 
     for(y=YSIZE-1;y>=0;y--)
@@ -149,35 +149,34 @@ int main(int argc, char *argv[])
             {
 				threadId = (int)(assignedCoordinates/calculationsPerThread);
 				currentCalculation = assignedCoordinates%calculationsPerThread;
-				dataArray[threadId].threadPositionArray[currentCalculation][0] = x;
-				dataArray[threadId].threadPositionArray[currentCalculation][1] = y;
-				//dataArray[threadId].coordinateCount = calculationsPerThread;
-				dataArray[threadId].coordinateCount = (threadId+1 == threadCount) ? lastThreadCalculations : calculationsPerThread;
+				dataArray[threadId].threadPosArray[currentCalculation][0] = x;
+				dataArray[threadId].threadPosArray[currentCalculation][1] = y;
+				dataArray[threadId].coordCount = (threadId+1 == threadCount) ? lastThreadCalculations : calculationsPerThread;
 				assignedCoordinates++;
             }
 	}
 
 
-	// --- thread startup -------------------------
+	// start thread
 	for (i=0; i < threadCount; ++i) {
 		threadHandles[i] = CreateThread(
 			NULL,
 			0,
-			calculateColorsInsideThread,
+			calculateColorsThread,
 			&dataArray[i],
 			0,
 			NULL);
 	}
 
-	// --- thread shutdown ----
+	// stop thread
 	for(i = 0; i < threadCount; i += MAXIMUM_WAIT_OBJECTS) {
 		WaitForMultipleObjects(MAXIMUM_WAIT_OBJECTS, threadHandles, TRUE, INFINITE);
 	}
 
-	// --- extract results ----
+	// results
 	assignedCoordinates = 0;
 	for (j = 0; j < threadCount; ++j) {
-		for (i = 0; i < dataArray[j].coordinateCount; ++i) {
+		for (i = 0; i < dataArray[j].coordCount; ++i) {
 			len=fwrite(dataArray[j].calculatedColors[i],1,3,fd);
 			if(-1==len || len!=3) {
 				perror("write");
