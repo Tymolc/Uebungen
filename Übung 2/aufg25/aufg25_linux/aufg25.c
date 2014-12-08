@@ -1,8 +1,8 @@
 /* Betriebssystem & Middleware
  *
- * Betriebssysteme I WS 2011/2012
+ * Betriebssysteme I WS 2014/2015
  *
- * Uebung 3.3
+ * Uebung 2.5
  */
 #include <stdio.h>
 #include <errno.h>
@@ -20,7 +20,6 @@ struct ThreadData {
     int pixelCount;
 };
 
-// globals ftw oder so
 char colorArray[YSIZE][XSIZE][3];
 
 
@@ -39,7 +38,6 @@ void *threadRoutine (void *dataPointer) {
         getColorValuesAt(x * (2.0 / XSIZE) - 1.5, y * (2.0 / YSIZE) - 1.0,&c[2],&c[1],&c[0]);
     }
 
-    // we are the only one with a pointer to this - free it
     free(td);
     td = NULL;
 }
@@ -76,9 +74,7 @@ int main(int argc, char *argv[]) {
     }
     getDescription(dsc,&len);
 
-    // Goennen Sie sich die Funktion getId der algorithm.h, welche sehr klar zugeordnet werden kann
     printf("Calculate %s %d\n",dsc,getId());
-    // open the file
     fd=fopen(argv[2],"wb+");
     if(NULL==fd) {
         perror("open"); exit(1);
@@ -137,7 +133,7 @@ int main(int argc, char *argv[]) {
         exit(2);
     }
 
-    // allocate space for the threads - free them after they joined
+    // allocate space for the threads
     threads = (pthread_t*) malloc(threadCount * sizeof(pthread_t));
     if(threads == NULL) {
 	perror("malloc for threads failed");
@@ -146,7 +142,6 @@ int main(int argc, char *argv[]) {
 
     for(i=0; i<threadCount; i++) {
 	// allocate space for the ThreadData structs
-	// each thread will free those themselves so we can 'leak' it here
         struct ThreadData* td = (struct ThreadData*) malloc(sizeof(struct ThreadData));
 	if(td == NULL) {
 		perror("malloc for ThreadData failed");
@@ -160,7 +155,6 @@ int main(int argc, char *argv[]) {
             td->pixelCount = (XSIZE * YSIZE) - td->startPos;
         }
 
-	// takeoff!
         pthread_create(&threads[i], NULL, threadRoutine, (void*) td);
     }
 
@@ -174,7 +168,7 @@ int main(int argc, char *argv[]) {
     // free thread memory
     free(threads);
 
-    /* write precalculated values to the file */
+    // write precalculated values to the file
     for(y=YSIZE-1;y>=0;y--) {
             for(x=0;x<XSIZE;x++) {
 	    	len=fwrite(&colorArray[y][x], 1, 3, fd);
@@ -186,13 +180,7 @@ int main(int argc, char *argv[]) {
             /*no padding required because 1500%4 =0*/
     }
     fclose(fd);
-
-    // I could free the char *dsc here that was malloc'ed beforehand
-    // 
-    // Quite funny that non-freed memory will give penalty
-    // but in the initial setting they leak memory... :p
     free(dsc);
 
-    // let's be verbose and explicitly return 0
     return 0;
 }
