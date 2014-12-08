@@ -23,8 +23,8 @@ struct ThreadData {
 	int coordCount;
 };
 
-DWORD WINAPI calculateColorsThread(LPVOID void) {
-	struct ThreadData *td = (struct ThreadData*) void;
+DWORD WINAPI calculateColorsThread(LPVOID *dataPointer) {
+	struct ThreadData *td = (struct ThreadData*) *dataPointer;
 	int i,x,y;
 	char* c;
 
@@ -43,6 +43,17 @@ DWORD WINAPI calculateColorsThread(LPVOID void) {
 int main(int argc, char *argv[])
 {
     FILE *fd;
+	
+    if(argc != 3) {
+        perror("usage: bmp_fractal threadCount outputFilename.bmp");
+        exit(1);
+    }
+
+    if((atoi(argv[1])) < 1) {
+        perror("That is not a valid thread count.");
+        exit(1);
+    }
+	
 	int threadCount = atoi(argv[1]);
 	int threadId,currentCalculation;
 	int assignedCoordinates = 0;
@@ -77,10 +88,6 @@ int main(int argc, char *argv[])
     getDescription(dsc,&len);
     
     printf("Calculate %s %d\n",dsc,getId());
-	if(argv[2]=="")
-	{
-		argv[2] = "mandelbrot.bmp";
-	}
 	
     fd=fopen(argv[2],"wb+");
     if(NULL==fd)
