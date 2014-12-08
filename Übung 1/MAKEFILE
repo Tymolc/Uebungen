@@ -1,0 +1,2 @@
+blatt15b : blatt15b.exe
+	$(CC) -o blatt15b.exe blatt15b.c

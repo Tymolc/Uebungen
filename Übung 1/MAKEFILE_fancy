@@ -1,0 +1,12 @@
+.PHONY:
+ifeq ($(OS), Windows_NT)
+
+blatt15b : blatt15b.exe
+	$(CC) -o blatt15b.exe blatt15b.c
+	
+else
+
+blatt15a:blatt15a
+	$(CC) -o blatt15a blatt15a.c
+	
+endif

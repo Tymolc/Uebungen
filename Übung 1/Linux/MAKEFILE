@@ -1,0 +1,2 @@
+blatt15a: blatt15a
+	$(CC) -o blatt15a blatt15a.c
