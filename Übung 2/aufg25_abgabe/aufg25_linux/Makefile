@@ -1,6 +1,7 @@
 LOADLIBES=-lfractal -lm -lpthread
 LDFLAGS=-L$(shell uname -m)
 all: aufg25
+	@rm -f *.o
 
 clean:
-	@rm -f aufg25 aufg25.o
+	@rm -f aufg25
